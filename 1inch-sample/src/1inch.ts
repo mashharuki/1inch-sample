@@ -56,8 +56,11 @@ export class OneInchSwap {
       amount: params.amount,
       from: params.from,
       slippage: params.slippage,
-      disableEstimate: true,
-      allowPartialFill: false
+      disableEstimate: false, // 見積もりを有効にして正確なガス量を取得
+      allowPartialFill: false,
+      includeTokensInfo: true,
+      includeProtocols: true,
+      includeGasInfo: true
     };
 
     try {
@@ -140,6 +143,19 @@ export class OneInchSwap {
       // 1. スワップ見積もりを取得
       const quote = await this.getSwapQuote(params);
       
+      // 現在の残高を確認
+      const userAddress = await this.signer.getAddress();
+      const balance = await this.provider.getBalance(userAddress);
+      const requiredAmount = ethers.BigNumber.from(quote.tx.value);
+      
+      console.log('残高確認:');
+      console.log('- 現在の残高:', ethers.utils.formatEther(balance), 'ETH');
+      console.log('- 必要な金額:', ethers.utils.formatEther(requiredAmount), 'ETH');
+      
+      if (balance.lt(requiredAmount)) {
+        throw new Error(`残高不足: 必要 ${ethers.utils.formatEther(requiredAmount)} ETH, 現在 ${ethers.utils.formatEther(balance)} ETH`);
+      }
+      
       /*
       // 2. トークンの承認（ETHの場合はスキップ）
       if (params.src !== '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee') {
@@ -164,6 +180,21 @@ export class OneInchSwap {
         gasLimit = minGasLimit;
       }
       
+      // ガス制限を1.2倍に増加（安全マージン）
+      gasLimit = gasLimit.mul(12).div(10);
+      
+      // 総ガス代を計算
+      const totalGasCost = gasLimit.mul(gasPrice);
+      const totalRequired = requiredAmount.add(totalGasCost);
+      
+      console.log('ガス代計算:');
+      console.log('- 推定ガス代:', ethers.utils.formatEther(totalGasCost), 'ETH');
+      console.log('- 総必要金額:', ethers.utils.formatEther(totalRequired), 'ETH');
+      
+      if (balance.lt(totalRequired)) {
+        throw new Error(`ガス代込みで残高不足: 必要 ${ethers.utils.formatEther(totalRequired)} ETH, 現在 ${ethers.utils.formatEther(balance)} ETH`);
+      }
+      
       console.log('トランザクション詳細:');
       console.log('- to:', quote.tx.to);
       console.log('- value:', quote.tx.value);
@@ -182,14 +213,29 @@ export class OneInchSwap {
       
       // 4. トランザクションの確認を待つ
       const receipt = await tx.wait();
-      console.log('スワップ完了:', receipt!.transactionHash);
       
-      return receipt!.transactionHash;
-
+      // トランザクションの結果を確認
+      if (receipt.status === 0) {
+        console.error('トランザクションが失敗しました');
+        console.error('Receipt:', receipt);
+        throw new Error(`Transaction failed: ${receipt.transactionHash}`);
+      }
+      
+      console.log('スワップ完了:', receipt.transactionHash);
+      return receipt.transactionHash;
       */
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('スワップ実行エラー:', error);
+      
+      // より詳細なエラー情報を表示
+      if (error.code === 'CALL_EXCEPTION') {
+        console.error('CALL_EXCEPTION発生:');
+        console.error('- reason:', error.reason);
+        console.error('- transaction:', error.transaction);
+        console.error('- receipt:', error.receipt);
+      }
+      
       throw error;
     }
   }
