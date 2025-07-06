@@ -71,7 +71,8 @@ export class OneInchSwap {
         }
       });
 
-      console.log('スワップ見積もり取得成功:', response.data);
+      console.log('スワップ見積もり取得成功');
+      console.log('APIレスポンス:', JSON.stringify(response.data, null, 2));
         
         // レスポンスデータを分割代入で取得
         const { dstAmount, dstToken, tx } = response.data;
@@ -80,6 +81,13 @@ export class OneInchSwap {
         const dstDecimals = dstToken?.decimals || 18;
         const formattedDstAmount = ethers.utils.formatUnits(dstAmount, dstDecimals);
         console.log(`取得予定トークン量: ${formattedDstAmount} ${dstToken?.symbol || 'tokens'}`);
+        
+        // ガス情報を詳細表示
+        console.log('ガス情報:');
+        console.log('- gas:', tx.gas);
+        console.log('- gasPrice:', tx.gasPrice);
+        console.log('- gas (BigNumber):', ethers.BigNumber.from(tx.gas).toString());
+        console.log('- gasPrice (BigNumber):', ethers.BigNumber.from(tx.gasPrice).toString());
         
         // ガス代をETH単位で表示
         const gasCostWei = ethers.BigNumber.from(tx.gas).mul(tx.gasPrice);
@@ -132,7 +140,7 @@ export class OneInchSwap {
       // 1. スワップ見積もりを取得
       const quote = await this.getSwapQuote(params);
       
-      /**/
+      /*
       // 2. トークンの承認（ETHの場合はスキップ）
       if (params.src !== '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee') {
         await this.approveToken(
@@ -144,12 +152,30 @@ export class OneInchSwap {
 
       // 3. スワップトランザクションを実行
       console.log('スワップを実行中...');
+      
+      // ガス制限を適切な数値に変換し、最小値を確保
+      let gasLimit = ethers.BigNumber.from(quote.tx.gas);
+      const gasPrice = ethers.BigNumber.from(quote.tx.gasPrice);
+      
+      // ガス制限が0や異常に低い場合のフォールバック
+      const minGasLimit = ethers.BigNumber.from('50000'); // 最小ガス制限
+      if (gasLimit.lt(minGasLimit)) {
+        console.warn(`ガス制限が低すぎます (${gasLimit.toString()})。最小値 ${minGasLimit.toString()} を使用します。`);
+        gasLimit = minGasLimit;
+      }
+      
+      console.log('トランザクション詳細:');
+      console.log('- to:', quote.tx.to);
+      console.log('- value:', quote.tx.value);
+      console.log('- gasLimit:', gasLimit.toString());
+      console.log('- gasPrice:', gasPrice.toString());
+      
       const tx = await this.signer.sendTransaction({
         to: quote.tx.to,
         data: quote.tx.data,
         value: quote.tx.value,
-        gasLimit: quote.tx.gas,
-        gasPrice: quote.tx.gasPrice
+        gasLimit: gasLimit,
+        gasPrice: gasPrice
       });
 
       console.log('スワップトランザクション送信:', tx.hash);
@@ -159,6 +185,8 @@ export class OneInchSwap {
       console.log('スワップ完了:', receipt!.transactionHash);
       
       return receipt!.transactionHash;
+
+      */
       
     } catch (error) {
       console.error('スワップ実行エラー:', error);
@@ -186,7 +214,6 @@ export class OneInchSwap {
       chainId: 8453 // Base Chain ID
     };
 
-    await this.executeSwap(swapParams);
-    // return await this.executeSwap(swapParams);
+    return await this.executeSwap(swapParams);
   }
 }
