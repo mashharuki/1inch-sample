@@ -1,0 +1,25 @@
+{
+  "name": "1inch-sample",
+  "version": "1.0.0",
+  "description": "A sample project for 1inch integration with bun + biome + dotenv",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "format": "biome format --write src/"
+  },
+  "keywords": ["1inch", "defi", "swap", "ethereum", "typescript"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@biomejs/biome": "^1.8.3",
+    "@types/node": "^20.14.10",
+    "typescript": "^5.5.3"
+  },
+  "dependencies": {
+    "@1inch/fusion-sdk": "^2.3.5",
+    "axios": "^1.10.0",
+    "dotenv": "^16.4.5",
+    "ethers": "5"
+  }
+}
