@@ -1,4 +1,4 @@
-import { SDK } from "@1inch/cross-chain-sdk";
+import { NetworkEnum, SDK, type QuoteParams } from "@1inch/cross-chain-sdk";
 import "dotenv/config";
 
 const {
@@ -6,10 +6,10 @@ const {
 } = process.env;
 
 /**
- * Fusion SDKを試すためのサンプルスクリプト
+ * Swap API SDKを試すためのサンプルスクリプト
  */
 async function main() {
-  // Fusion SDKのインスタンスを作成
+  // Swap API SDKのインスタンスを作成
   const sdk = new SDK({
     url: "https://api.1inch.dev/fusion-plus",
     authKey: API_KEY,
@@ -27,6 +27,21 @@ async function main() {
   });
 
   console.log("Orders by Maker:", orders2);
+
+  // クォートを取得するためのパラメータを設定
+  const params: QuoteParams = {
+    srcChainId: NetworkEnum.ETHEREUM,
+    dstChainId: NetworkEnum.GNOSIS,
+    srcTokenAddress: "0x6b175474e89094c44da98b954eedeac495271d0f",
+    dstTokenAddress: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    amount: "1000000000000000000000",
+    walletAddress: "0x51908F598A5e0d8F1A3bAbFa6DF76F9704daD072",
+  };
+
+  // get quoteを使ってクォートを取得
+  const quote = await sdk.getQuote(params);
+
+  console.log("Quote:", quote);
 }
 
 main();
